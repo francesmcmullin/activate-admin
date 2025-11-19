@@ -19,6 +19,16 @@
     </div>
   </div>
 
+  <div class="form-group">
+    <label class="control-label col-sm-3">Two Factor Auth Code (likely stored in Google Authenticator or Authy app)</label>
+    <div class="col-sm-3">
+      <%= text_field_tag :totp_code, :class => 'form-control' %>
+    </div>
+    <div style="text-size: 0.8em;">No 2FA setup yet? Ask an admin to allow login and 2FA setup for your account, then leave this blank when logging in</div>
+    <div style="text-size: 0.8em;">Tip: We allow codes for an extra 30 seconds after expiry, no rush!</div>
+  </div>
+
+
   <% if Padrino.env == :development %>
     <div class="form-group">
       <label class="control-label col-sm-3">Bypass login?</label>

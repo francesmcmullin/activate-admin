@@ -1,0 +1,39 @@
+<h1>Setup 2FA for account <%= current_account.email %> </h1>
+
+<div id="qrcode"></div>
+<div>Alternatively, input secret key manually: <%= @totp_secret_key %></div>
+
+<p>
+  Scan the QR code using an app for storing Time based One Time Pads (TOTP). Options for Android and IOS include Google Authenticator, Authy, and Bitwarden Authenticator. Once you've imported the key, enter a code below to confirm your setup.
+</p>
+
+<% form_tag url(:setup_2fa), :class => 'form-horizontal' do %>
+
+  <% if params[:redir] %>
+    <%= hidden_field_tag :redir, :value => params[:redir] %>
+  <% end %>
+
+
+  <div class="form-group">
+    <label class="control-label col-sm-3">2FA code</label>
+    <div class="col-sm-3">
+      <%= text_field_tag :otp_test, :class => 'form-control' %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <div class="col-sm-offset-3 col-sm-3">
+      <button class="btn btn-primary" type="submit">Confirm 2FA setup</button>
+    </div>
+  </div>
+
+<% end %>
+
+<script src="//cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+<script type="text/javascript">
+  window.addEventListener("load", (event) => {
+    var qrcode = new QRCode("qrcode");
+    const url = "<%= @totp_uri %>"
+    qrcode.makeCode(url);
+  })
+</script>

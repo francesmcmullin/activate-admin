@@ -38,7 +38,7 @@ module ActivateAdmin
         end
         halt 403 unless ENV['PERMITTED_IPS'].split(',').include? ip_to_verify
       end
-      redirect url(:login) + "?redir=#{CGI::escape request.path}" unless [url(:login), url(:logout), url(:forgot_password)].any? { |p| p == request.path } or ['stylesheets','javascripts'].any? { |p| request.path.starts_with? "#{ActivateAdmin::App.uri_root}/#{p}" } or Account.count == 0 or (current_account and current_account.admin?)
+      redirect url(:login) + "?redir=#{CGI::escape request.path}" unless [url(:login), url(:logout), url(:forgot_password), url(:setup_2fa)].any? { |p| p == request.path } or ['stylesheets','javascripts'].any? { |p| request.path.starts_with? "#{ActivateAdmin::App.uri_root}/#{p}" } or Account.count == 0 or (current_account and current_account.admin?)
       Time.zone = current_account.time_zone if current_account and current_account.respond_to?(:time_zone) and current_account.time_zone
       fix_params!
     end
@@ -402,9 +402,10 @@ module ActivateAdmin
     end
 
     post :login, :map => '/login' do
-      if account = Account.authenticate(params[:email], params[:password])
+      if account = Account.authenticate(params[:email], params[:password], params[:totp_code])
         session[:account_id] = account.id
         flash[:notice] = "Logged in successfully."
+        redirect url(:setup_2fa) if account.needs_totp_setup?
         redirect params[:redir] or url(:home)
       elsif Padrino.env == :development && params[:bypass]
         account = Account.first
@@ -414,6 +415,29 @@ module ActivateAdmin
       else
         flash[:error] = "Login or password wrong."
         redirect url(:login)
+      end
+    end
+
+    get :setup_2fa, :map => '/setup_2fa' do
+      redirect url(:login) unless current_account.present? # This route is technically allowed for logged out users, just to make sure non-admins can access
+
+      current_account.setup_totp!
+      @totp_uri = current_account.otp_provisioning_uri
+      @totp_secret_key = current_account.totp_secret
+
+      erb :setup_2fa
+    end
+
+    post :setup_2fa, :map => '/setup_2fa' do
+      redirect url(:login) unless current_account.present? # This route is technically allowed for logged out users, just to make sure non-admins can access
+
+      if current_account.valid_totp?(params[:otp_test])
+        flash[:notice] = "Setup Two Factor Auth successfully"
+        redirect params[:redir] or url(:home)
+      else
+        flash[:error] = "Oops, looks like the code you entered was not correct, can you try again?"
+        @totp_uri = current_account.otp_provisioning_uri
+        erb :setup_2fa
       end
     end
 
