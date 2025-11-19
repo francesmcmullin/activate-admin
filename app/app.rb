@@ -13,7 +13,7 @@ module ActivateAdmin
     end
 
     def initialize
-      unless ActiveRecord::Base.connection.active?
+      unless ActiveRecord::Base.connection.active? || ActiveRecord::Base.connection_pool.active_connection?
         if ENV['DATABASE_URL'] and ENV['DATABASE_SCHEMA']
           ActiveRecord::Base.establish_connection(ENV['DATABASE_URL'])
           ActiveRecord::Base.connection.schema_search_path = ENV['DATABASE_SCHEMA']
